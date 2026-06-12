@@ -1,12 +1,20 @@
 package cl.perfulandia.usuarios.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import cl.perfulandia.usuarios.model.Rol;
 import cl.perfulandia.usuarios.service.RolService;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -19,8 +27,8 @@ public class RolController {
     }
 
     @GetMapping
-    public List<Rol> listarRoles() {
-        return rolService.listarRoles();
+    public ResponseEntity<List<Rol>> listarRoles() {
+        return ResponseEntity.ok(rolService.listarRoles());
     }
 
     @GetMapping("/{id}")
@@ -31,28 +39,27 @@ public class RolController {
     }
 
     @PostMapping
-    public Rol guardarRol(@Valid @RequestBody Rol rol) {
-        return rolService.guardarRol(rol);
+    public ResponseEntity<Rol> guardarRol(@Valid @RequestBody Rol rol) {
+        Rol rolGuardado = rolService.guardarRol(rol);
+        return ResponseEntity.ok(rolGuardado);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Rol> actualizarRol(@PathVariable Long id, @Valid @RequestBody Rol rol) {
-        try {
-            Rol rolActualizado = rolService.actualizarRol(id, rol);
-            return ResponseEntity.ok(rolActualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Rol> actualizarRol(
+            @PathVariable Long id,
+            @Valid @RequestBody Rol rol) {
+
+        Rol rolActualizado = rolService.actualizarRol(id, rol);
+        return ResponseEntity.ok(rolActualizado);
     }
 
     @PutMapping("/{idRol}/permisos/{idPermiso}")
-    public ResponseEntity<Rol> agregarPermisoARol(@PathVariable Long idRol, @PathVariable Long idPermiso) {
-        try {
-            Rol rolActualizado = rolService.agregarPermisoARol(idRol, idPermiso);
-            return ResponseEntity.ok(rolActualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Rol> agregarPermisoARol(
+            @PathVariable Long idRol,
+            @PathVariable Long idPermiso) {
+
+        Rol rolActualizado = rolService.agregarPermisoARol(idRol, idPermiso);
+        return ResponseEntity.ok(rolActualizado);
     }
 
     @DeleteMapping("/{id}")

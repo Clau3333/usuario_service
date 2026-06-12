@@ -1,11 +1,14 @@
 package cl.perfulandia.usuarios.repository;
 
-import cl.perfulandia.usuarios.model.Rol;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import cl.perfulandia.usuarios.model.Rol;
 
 public interface RolRepository extends JpaRepository<Rol, Long> {
 
     Optional<Rol> findByNombreRol(String nombreRol);
+
+    boolean existsByNombreRol(String nombreRol);
 }
