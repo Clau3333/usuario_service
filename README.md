@@ -207,3 +207,25 @@ docs/evidencias/05-swagger
 * Swagger UI habilitado correctamente.
 * MySQL funcionando localmente mediante XAMPP.
 * Proyecto versionado en GitHub.
+
+## Manejo de errores HTTP
+
+El microservicio cuenta con un manejador global de errores mediante la clase `ApiExceptionHandler`.
+
+Este componente permite entregar respuestas HTTP claras y consistentes cuando ocurre una excepción o una validación incorrecta.
+
+Códigos validados en Postman:
+
+```txt
+200 OK - Consulta correcta de roles
+400 Bad Request - Datos inválidos al crear usuario
+401 Unauthorized - Login con credenciales incorrectas
+404 Not Found - Búsqueda de usuario inexistente
+409 Conflict - Intento de crear un rol duplicado
+```
+
+Las evidencias se encuentran en:
+
+```txt
+docs/evidencias/06-postman
+```
