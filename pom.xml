@@ -108,7 +108,7 @@
 					<exclude>cl/perfulandia/usuarios/dto/**</exclude>
 					<exclude>cl/perfulandia/usuarios/model/**</exclude>
 					<exclude>cl/perfulandia/usuarios/repository/**</exclude>
-				</excludes>
+			</excludes>
 			</configuration>
 			<executions>
 				<execution>
