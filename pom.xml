@@ -108,7 +108,6 @@
 					<exclude>cl/perfulandia/usuarios/dto/**</exclude>
 					<exclude>cl/perfulandia/usuarios/model/**</exclude>
 					<exclude>cl/perfulandia/usuarios/repository/**</exclude>
-					<exclude>cl/perfulandia/usuarios/controller/**</exclude>
 				</excludes>
 			</configuration>
 			<executions>
