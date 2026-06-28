@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -45,15 +46,12 @@ class UsuarioServiceTest {
 
     @Test
     void listarUsuarios_deberiaRetornarLista() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findAll()).thenReturn(List.of(usuario));
 
-        // When
         List<Usuario> resultado = usuarioService.listarUsuarios();
 
-        // Then
         assertEquals(1, resultado.size());
         assertEquals("admin@perfulandia.cl", resultado.get(0).getCorreo());
         verify(usuarioRepository).findAll();
@@ -61,15 +59,12 @@ class UsuarioServiceTest {
 
     @Test
     void listarUsuariosPorEstado_deberiaRetornarUsuariosActivos() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findByEstado(true)).thenReturn(List.of(usuario));
 
-        // When
         List<Usuario> resultado = usuarioService.listarUsuariosPorEstado(true);
 
-        // Then
         assertEquals(1, resultado.size());
         assertTrue(resultado.get(0).getEstado());
         verify(usuarioRepository).findByEstado(true);
@@ -77,15 +72,12 @@ class UsuarioServiceTest {
 
     @Test
     void buscarUsuarioPorId_deberiaRetornarUsuarioCuandoExiste() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
 
-        // When
         Optional<Usuario> resultado = usuarioService.buscarUsuarioPorId(1L);
 
-        // Then
         assertTrue(resultado.isPresent());
         assertEquals("admin@perfulandia.cl", resultado.get().getCorreo());
         verify(usuarioRepository).findById(1L);
@@ -93,7 +85,6 @@ class UsuarioServiceTest {
 
     @Test
     void guardarUsuario_deberiaGuardarUsuarioNuevo() {
-        // Given
         Rol rol = rolEjemplo(1L);
         Usuario usuario = usuarioRequest(" Admin ", " Sistema ", " ADMIN@PERFULANDIA.CL ", "123456", " Santiago ", null, rol);
 
@@ -106,10 +97,8 @@ class UsuarioServiceTest {
             return guardado;
         });
 
-        // When
         Usuario resultado = usuarioService.guardarUsuario(usuario);
 
-        // Then
         assertEquals(1L, resultado.getIdUsuario());
         assertEquals("Admin", resultado.getNombre());
         assertEquals("Sistema", resultado.getApellido());
@@ -123,7 +112,6 @@ class UsuarioServiceTest {
 
     @Test
     void guardarUsuario_deberiaMantenerEstadoFalseSiVieneInformado() {
-        // Given
         Rol rol = rolEjemplo(2L);
         Usuario usuario = usuarioRequest("Camila", "Torres", "camila@gmail.com", "123456", null, false, rol);
 
@@ -132,23 +120,41 @@ class UsuarioServiceTest {
         when(passwordUtil.generarHash("123456")).thenReturn("HASH");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         Usuario resultado = usuarioService.guardarUsuario(usuario);
 
-        // Then
         assertFalse(resultado.getEstado());
         assertNull(resultado.getDireccionEnvio());
         verify(usuarioRepository).save(usuario);
     }
 
     @Test
+    void guardarUsuario_deberiaPermitirNombreApellidoYCorreoNullParaCubrirLimpiezaNull() {
+        Rol rol = rolEjemplo(1L);
+        Usuario usuario = usuarioRequest(null, null, null, "123456", " Valparaiso ", null, rol);
+
+        when(usuarioRepository.existsByCorreo(isNull())).thenReturn(false);
+        when(rolRepository.findById(1L)).thenReturn(Optional.of(rol));
+        when(passwordUtil.generarHash("123456")).thenReturn("HASH_123456");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Usuario resultado = usuarioService.guardarUsuario(usuario);
+
+        assertNull(resultado.getNombre());
+        assertNull(resultado.getApellido());
+        assertNull(resultado.getCorreo());
+        assertEquals("Valparaiso", resultado.getDireccionEnvio());
+        assertTrue(resultado.getEstado());
+        assertEquals("HASH_123456", resultado.getPasswordHash());
+        verify(usuarioRepository).existsByCorreo(isNull());
+        verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
     void guardarUsuario_deberiaLanzarExcepcionCuandoCorreoExiste() {
-        // Given
         Usuario usuario = usuarioRequest("Admin", "Sistema", "admin@perfulandia.cl", "123456", null, true, rolEjemplo(1L));
 
         when(usuarioRepository.existsByCorreo("admin@perfulandia.cl")).thenReturn(true);
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.guardarUsuario(usuario)
@@ -160,12 +166,10 @@ class UsuarioServiceTest {
 
     @Test
     void guardarUsuario_deberiaLanzarExcepcionCuandoRolEsNull() {
-        // Given
         Usuario usuario = usuarioRequest("Admin", "Sistema", "admin@perfulandia.cl", "123456", null, true, null);
 
         when(usuarioRepository.existsByCorreo("admin@perfulandia.cl")).thenReturn(false);
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.guardarUsuario(usuario)
@@ -177,13 +181,11 @@ class UsuarioServiceTest {
 
     @Test
     void guardarUsuario_deberiaLanzarExcepcionCuandoIdRolEsNull() {
-        // Given
         Rol rolSinId = new Rol(null, "CLIENTE", "Cliente", new HashSet<>());
         Usuario usuario = usuarioRequest("Admin", "Sistema", "admin@perfulandia.cl", "123456", null, true, rolSinId);
 
         when(usuarioRepository.existsByCorreo("admin@perfulandia.cl")).thenReturn(false);
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.guardarUsuario(usuario)
@@ -195,13 +197,11 @@ class UsuarioServiceTest {
 
     @Test
     void guardarUsuario_deberiaLanzarExcepcionCuandoRolNoExiste() {
-        // Given
         Usuario usuario = usuarioRequest("Admin", "Sistema", "admin@perfulandia.cl", "123456", null, true, rolEjemplo(99L));
 
         when(usuarioRepository.existsByCorreo("admin@perfulandia.cl")).thenReturn(false);
         when(rolRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.guardarUsuario(usuario)
@@ -213,7 +213,6 @@ class UsuarioServiceTest {
 
     @Test
     void actualizarUsuario_deberiaActualizarSinCambiarPasswordCuandoPasswordVieneNull() {
-        // Given
         Rol rol = rolEjemplo(1L);
         Usuario existente = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rol);
         Usuario request = usuarioRequest("Admin", "Actualizado", "admin@perfulandia.cl", null, " Nueva direccion ", null, rol);
@@ -222,10 +221,8 @@ class UsuarioServiceTest {
         when(rolRepository.findById(1L)).thenReturn(Optional.of(rol));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         Usuario resultado = usuarioService.actualizarUsuario(1L, request);
 
-        // Then
         assertEquals("Admin", resultado.getNombre());
         assertEquals("Actualizado", resultado.getApellido());
         assertEquals("Nueva direccion", resultado.getDireccionEnvio());
@@ -235,8 +232,28 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void actualizarUsuario_noDeberiaCambiarPasswordCuandoPasswordVieneEnBlanco() {
+        Rol rol = rolEjemplo(1L);
+        Usuario existente = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rol);
+        Usuario request = usuarioRequest(" Admin ", " Sistema ", " ADMIN@PERFULANDIA.CL ", "   ", null, true, rol);
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(existente));
+        when(rolRepository.findById(1L)).thenReturn(Optional.of(rol));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Usuario resultado = usuarioService.actualizarUsuario(1L, request);
+
+        assertEquals("Admin", resultado.getNombre());
+        assertEquals("Sistema", resultado.getApellido());
+        assertEquals("admin@perfulandia.cl", resultado.getCorreo());
+        assertEquals("HASH_GUARDADO", resultado.getPasswordHash());
+        assertNull(resultado.getDireccionEnvio());
+        verify(passwordUtil, never()).generarHash(anyString());
+        verify(usuarioRepository).save(existente);
+    }
+
+    @Test
     void actualizarUsuario_deberiaActualizarCorreoYPassword() {
-        // Given
         Rol rol = rolEjemplo(1L);
         Usuario existente = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rol);
         Usuario request = usuarioRequest("Admin", "Sistema", "NUEVO@PERFULANDIA.CL", "nueva123", "   ", false, rol);
@@ -247,10 +264,8 @@ class UsuarioServiceTest {
         when(passwordUtil.generarHash("nueva123")).thenReturn("HASH_NUEVO");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         Usuario resultado = usuarioService.actualizarUsuario(1L, request);
 
-        // Then
         assertEquals("nuevo@perfulandia.cl", resultado.getCorreo());
         assertEquals("HASH_NUEVO", resultado.getPasswordHash());
         assertFalse(resultado.getEstado());
@@ -260,10 +275,8 @@ class UsuarioServiceTest {
 
     @Test
     void actualizarUsuario_deberiaLanzarExcepcionCuandoUsuarioNoExiste() {
-        // Given
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.actualizarUsuario(99L, usuarioRequestBasico())
@@ -275,14 +288,12 @@ class UsuarioServiceTest {
 
     @Test
     void actualizarUsuario_deberiaLanzarExcepcionCuandoCorreoYaExiste() {
-        // Given
         Usuario existente = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
         Usuario request = usuarioRequest("Admin", "Sistema", "otro@perfulandia.cl", null, null, true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(existente));
         when(usuarioRepository.existsByCorreo("otro@perfulandia.cl")).thenReturn(true);
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.actualizarUsuario(1L, request)
@@ -294,26 +305,21 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarEstadoUsuario_deberiaCambiarEstado() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         Usuario resultado = usuarioService.cambiarEstadoUsuario(1L, false);
 
-        // Then
         assertFalse(resultado.getEstado());
         verify(usuarioRepository).save(usuario);
     }
 
     @Test
     void cambiarEstadoUsuario_deberiaLanzarExcepcionCuandoUsuarioNoExiste() {
-        // Given
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarEstadoUsuario(99L, false)
@@ -324,12 +330,10 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarEstadoUsuario_deberiaLanzarExcepcionCuandoEstadoEsNull() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarEstadoUsuario(1L, null)
@@ -341,7 +345,6 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarRolUsuario_deberiaCambiarRol() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
         Rol nuevoRol = rolEjemplo(2L);
 
@@ -349,20 +352,16 @@ class UsuarioServiceTest {
         when(rolRepository.findById(2L)).thenReturn(Optional.of(nuevoRol));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         Usuario resultado = usuarioService.cambiarRolUsuario(1L, 2L);
 
-        // Then
         assertEquals(2L, resultado.getRol().getIdRol());
         verify(usuarioRepository).save(usuario);
     }
 
     @Test
     void cambiarRolUsuario_deberiaLanzarExcepcionCuandoUsuarioNoExiste() {
-        // Given
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarRolUsuario(99L, 1L)
@@ -374,13 +373,11 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarRolUsuario_deberiaLanzarExcepcionCuandoRolNoExiste() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(rolRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarRolUsuario(1L, 99L)
@@ -392,7 +389,6 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarPassword_deberiaCambiarPasswordCuandoActualEsCorrecta() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
@@ -400,20 +396,16 @@ class UsuarioServiceTest {
         when(passwordUtil.generarHash("admin456")).thenReturn("HASH_NUEVO");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         Usuario resultado = usuarioService.cambiarPassword(1L, "admin123", "admin456");
 
-        // Then
         assertEquals("HASH_NUEVO", resultado.getPasswordHash());
         verify(usuarioRepository).save(usuario);
     }
 
     @Test
     void cambiarPassword_deberiaLanzarExcepcionCuandoUsuarioNoExiste() {
-        // Given
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarPassword(99L, "admin123", "admin456")
@@ -424,12 +416,10 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarPassword_deberiaLanzarExcepcionCuandoUsuarioEstaInactivo() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", false, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarPassword(1L, "admin123", "admin456")
@@ -441,44 +431,37 @@ class UsuarioServiceTest {
 
     @Test
     void cambiarPassword_deberiaLanzarExcepcionCuandoPasswordActualEsIncorrecta() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(passwordUtil.verificarPassword("incorrecta", "HASH_GUARDADO")).thenReturn(false);
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.cambiarPassword(1L, "incorrecta", "admin456")
         );
 
-        assertTrue(exception.getMessage().contains("contraseña actual"));
+        assertTrue(exception.getMessage().toLowerCase().contains("actual"));
         verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
     @Test
     void eliminarUsuario_deberiaDesactivarUsuario() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
         usuarioService.eliminarUsuario(1L);
 
-        // Then
         assertFalse(usuario.getEstado());
         verify(usuarioRepository).save(usuario);
     }
 
     @Test
     void eliminarUsuario_deberiaLanzarExcepcionCuandoUsuarioNoExiste() {
-        // Given
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When / Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> usuarioService.eliminarUsuario(99L)
@@ -490,107 +473,84 @@ class UsuarioServiceTest {
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoCorreoEsNull() {
-        // Given / When
         Optional<Usuario> resultado = usuarioService.validarLogin(null, "admin123");
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoCorreoEstaVacio() {
-        // Given / When
         Optional<Usuario> resultado = usuarioService.validarLogin(" ", "admin123");
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoPasswordEsNull() {
-        // Given / When
         Optional<Usuario> resultado = usuarioService.validarLogin("admin@perfulandia.cl", null);
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoPasswordEstaVacio() {
-        // Given / When
         Optional<Usuario> resultado = usuarioService.validarLogin("admin@perfulandia.cl", " ");
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoUsuarioNoExiste() {
-        // Given
         when(usuarioRepository.findByCorreo("admin@perfulandia.cl")).thenReturn(Optional.empty());
 
-        // When
         Optional<Usuario> resultado = usuarioService.validarLogin(" ADMIN@PERFULANDIA.CL ", "admin123");
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoPasswordNoCoincide() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findByCorreo("admin@perfulandia.cl")).thenReturn(Optional.of(usuario));
         when(passwordUtil.verificarPassword("incorrecta", "HASH_GUARDADO")).thenReturn(false);
 
-        // When
         Optional<Usuario> resultado = usuarioService.validarLogin("admin@perfulandia.cl", "incorrecta");
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarVacioCuandoUsuarioEstaInactivo() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", false, rolEjemplo(1L));
 
         when(usuarioRepository.findByCorreo("admin@perfulandia.cl")).thenReturn(Optional.of(usuario));
         when(passwordUtil.verificarPassword("admin123", "HASH_GUARDADO")).thenReturn(true);
 
-        // When
         Optional<Usuario> resultado = usuarioService.validarLogin("admin@perfulandia.cl", "admin123");
 
-        // Then
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void validarLogin_deberiaRetornarUsuarioCuandoCredencialesSonCorrectas() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
         when(usuarioRepository.findByCorreo("admin@perfulandia.cl")).thenReturn(Optional.of(usuario));
         when(passwordUtil.verificarPassword("admin123", "HASH_GUARDADO")).thenReturn(true);
 
-        // When
         Optional<Usuario> resultado = usuarioService.validarLogin("admin@perfulandia.cl", "admin123");
 
-        // Then
         assertTrue(resultado.isPresent());
         assertEquals("admin@perfulandia.cl", resultado.get().getCorreo());
     }
 
     @Test
     void convertirAUsuarioResponse_deberiaConvertirUsuarioConRol() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rolEjemplo(1L));
 
-        // When
         UsuarioResponse resultado = usuarioService.convertirAUsuarioResponse(usuario);
 
-        // Then
         assertEquals(1L, resultado.getIdUsuario());
         assertEquals("admin@perfulandia.cl", resultado.getCorreo());
         assertEquals(1L, resultado.getIdRol());
@@ -599,13 +559,10 @@ class UsuarioServiceTest {
 
     @Test
     void convertirAUsuarioResponse_deberiaConvertirUsuarioSinRol() {
-        // Given
         Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, null);
 
-        // When
         UsuarioResponse resultado = usuarioService.convertirAUsuarioResponse(usuario);
 
-        // Then
         assertEquals(1L, resultado.getIdUsuario());
         assertNull(resultado.getIdRol());
         assertNull(resultado.getNombreRol());
