@@ -128,8 +128,7 @@ public class UsuarioController {
             return ResponseEntity.notFound().build();
         }
 
-        UsuarioResponse response =
-                usuarioService.convertirAUsuarioResponse(usuario.get());
+        UsuarioResponse response = usuarioService.convertirAUsuarioResponse(usuario.get());
 
         return ResponseEntity.ok(agregarLinks(response));
     }
@@ -220,8 +219,7 @@ public class UsuarioController {
             @Valid @RequestBody Usuario usuario) {
 
         Usuario usuarioGuardado = usuarioService.guardarUsuario(usuario);
-        UsuarioResponse response =
-                usuarioService.convertirAUsuarioResponse(usuarioGuardado);
+        UsuarioResponse response = usuarioService.convertirAUsuarioResponse(usuarioGuardado);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -329,15 +327,84 @@ public class UsuarioController {
             @PathVariable Long id,
             @Valid @RequestBody Usuario usuario) {
 
-        Usuario usuarioActualizado =
-                usuarioService.actualizarUsuario(id, usuario);
-
-        UsuarioResponse response =
-                usuarioService.convertirAUsuarioResponse(usuarioActualizado);
+        Usuario usuarioActualizado = usuarioService.actualizarUsuario(id, usuario);
+        UsuarioResponse response = usuarioService.convertirAUsuarioResponse(usuarioActualizado);
 
         return ResponseEntity.ok(agregarLinks(response));
     }
 
+    @Operation(
+            summary = "Cambiar estado de usuario",
+            description = "Activa o desactiva un usuario existente."
+    )
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Nuevo estado del usuario.",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = CambiarEstadoRequest.class),
+                    examples = @ExampleObject(value = """
+                            {
+                              "estado": false
+                            }
+                            """)
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Estado del usuario actualizado correctamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "idUsuario": 1,
+                                      "nombre": "Juan",
+                                      "apellido": "Perez",
+                                      "correo": "juan.perez@perfulandia.cl",
+                                      "direccionEnvio": "Av. Siempre Viva 123",
+                                      "estado": false,
+                                      "idRol": 2,
+                                      "nombreRol": "CLIENTE"
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Solicitud inválida. El estado es obligatorio.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-06-25T16:35:00",
+                                      "status": 400,
+                                      "error": "Bad Request",
+                                      "mensaje": "Error de validación",
+                                      "errores": [
+                                        "estado: El estado es obligatorio"
+                                      ]
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-06-25T16:35:00",
+                                      "status": 404,
+                                      "error": "Not Found",
+                                      "mensaje": "Usuario no encontrado con ID: 99"
+                                    }
+                                    """)
+                    )
+            )
+    })
     @PatchMapping("/{id}/estado")
     public ResponseEntity<EntityModel<UsuarioResponse>> cambiarEstadoUsuario(
             @PathVariable Long id,
@@ -352,6 +419,78 @@ public class UsuarioController {
         return ResponseEntity.ok(agregarLinks(response));
     }
 
+    @Operation(
+            summary = "Cambiar rol de usuario",
+            description = "Asigna un nuevo rol a un usuario existente."
+    )
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Identificador del nuevo rol.",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = CambiarRolRequest.class),
+                    examples = @ExampleObject(value = """
+                            {
+                              "idRol": 1
+                            }
+                            """)
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Rol del usuario actualizado correctamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "idUsuario": 1,
+                                      "nombre": "Juan",
+                                      "apellido": "Perez",
+                                      "correo": "juan.perez@perfulandia.cl",
+                                      "direccionEnvio": "Av. Siempre Viva 123",
+                                      "estado": true,
+                                      "idRol": 1,
+                                      "nombreRol": "ADMINISTRADOR"
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Solicitud inválida. El id del rol es obligatorio.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-06-25T16:40:00",
+                                      "status": 400,
+                                      "error": "Bad Request",
+                                      "mensaje": "Error de validación",
+                                      "errores": [
+                                        "idRol: El id del rol es obligatorio"
+                                      ]
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario o rol no encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-06-25T16:40:00",
+                                      "status": 404,
+                                      "error": "Not Found",
+                                      "mensaje": "Rol no encontrado con ID: 99"
+                                    }
+                                    """)
+                    )
+            )
+    })
     @PatchMapping("/{id}/rol")
     public ResponseEntity<EntityModel<UsuarioResponse>> cambiarRolUsuario(
             @PathVariable Long id,
@@ -366,6 +505,76 @@ public class UsuarioController {
         return ResponseEntity.ok(agregarLinks(response));
     }
 
+    @Operation(
+            summary = "Cambiar contraseña de usuario",
+            description = "Actualiza la contraseña de un usuario validando su contraseña actual."
+    )
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Contraseña actual y nueva contraseña.",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = CambiarPasswordRequest.class),
+                    examples = @ExampleObject(value = """
+                            {
+                              "passwordActual": "usuario123",
+                              "passwordNueva": "usuario456"
+                            }
+                            """)
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Contraseña actualizada correctamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "idUsuario": 1,
+                                      "nombre": "Juan",
+                                      "apellido": "Perez",
+                                      "correo": "juan.perez@perfulandia.cl",
+                                      "direccionEnvio": "Av. Siempre Viva 123",
+                                      "estado": true,
+                                      "idRol": 2,
+                                      "nombreRol": "CLIENTE"
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Solicitud inválida o contraseña actual incorrecta.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-06-25T16:45:00",
+                                      "status": 400,
+                                      "error": "Bad Request",
+                                      "mensaje": "La contraseña actual es incorrecta"
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-06-25T16:45:00",
+                                      "status": 404,
+                                      "error": "Not Found",
+                                      "mensaje": "Usuario no encontrado con ID: 99"
+                                    }
+                                    """)
+                    )
+            )
+    })
     @PatchMapping("/{id}/password")
     public ResponseEntity<EntityModel<UsuarioResponse>> cambiarPassword(
             @PathVariable Long id,
@@ -415,11 +624,8 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
-    private EntityModel<UsuarioResponse> agregarLinks(
-            UsuarioResponse response) {
-
-        EntityModel<UsuarioResponse> usuarioModel =
-                EntityModel.of(response);
+    private EntityModel<UsuarioResponse> agregarLinks(UsuarioResponse response) {
+        EntityModel<UsuarioResponse> usuarioModel = EntityModel.of(response);
 
         usuarioModel.add(
                 linkTo(methodOn(UsuarioController.class)
@@ -435,28 +641,19 @@ public class UsuarioController {
 
         usuarioModel.add(
                 linkTo(methodOn(UsuarioController.class)
-                        .cambiarEstadoUsuario(
-                                response.getIdUsuario(),
-                                null
-                        ))
+                        .cambiarEstadoUsuario(response.getIdUsuario(), null))
                         .withRel("cambiar-estado")
         );
 
         usuarioModel.add(
                 linkTo(methodOn(UsuarioController.class)
-                        .cambiarRolUsuario(
-                                response.getIdUsuario(),
-                                null
-                        ))
+                        .cambiarRolUsuario(response.getIdUsuario(), null))
                         .withRel("cambiar-rol")
         );
 
         usuarioModel.add(
                 linkTo(methodOn(UsuarioController.class)
-                        .cambiarPassword(
-                                response.getIdUsuario(),
-                                null
-                        ))
+                        .cambiarPassword(response.getIdUsuario(), null))
                         .withRel("cambiar-password")
         );
 
