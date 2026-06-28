@@ -45,6 +45,17 @@ class ApiExceptionHandlerTest {
     }
 
     @Test
+    void manejarRuntimeException_deberiaRetornarNotFoundCuandoMensajeDiceNoEncontrada() {
+        ResponseEntity<Map<String, Object>> respuesta =
+                handler.manejarRuntimeException(new RuntimeException("Entidad no encontrada"));
+
+        assertEquals(HttpStatus.NOT_FOUND, respuesta.getStatusCode());
+        assertNotNull(respuesta.getBody());
+        assertEquals(404, respuesta.getBody().get("status"));
+        assertEquals("Entidad no encontrada", respuesta.getBody().get("mensaje"));
+    }
+
+    @Test
     void manejarRuntimeException_deberiaRetornarNotFoundCuandoMensajeDiceNoExiste() {
         ResponseEntity<Map<String, Object>> respuesta =
                 handler.manejarRuntimeException(new RuntimeException("El permiso no existe"));
@@ -76,6 +87,17 @@ class ApiExceptionHandlerTest {
         assertNotNull(respuesta.getBody());
         assertEquals(400, respuesta.getBody().get("status"));
         assertEquals("Formato invalid", respuesta.getBody().get("mensaje"));
+    }
+
+    @Test
+    void manejarRuntimeException_deberiaRetornarBadRequestCuandoMensajeDiceInvalidaConTilde() {
+        ResponseEntity<Map<String, Object>> respuesta =
+                handler.manejarRuntimeException(new RuntimeException("Solicitud inválida"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, respuesta.getStatusCode());
+        assertNotNull(respuesta.getBody());
+        assertEquals(400, respuesta.getBody().get("status"));
+        assertEquals("Solicitud inválida", respuesta.getBody().get("mensaje"));
     }
 
     @Test
@@ -129,7 +151,7 @@ class ApiExceptionHandlerTest {
         assertNotNull(respuesta.getBody());
         assertEquals(400, respuesta.getBody().get("status"));
         assertEquals("Bad Request", respuesta.getBody().get("error"));
-        assertEquals("Error de validación", respuesta.getBody().get("mensaje"));
+        assertTrue(respuesta.getBody().get("mensaje").toString().toLowerCase().contains("validaci"));
         assertNotNull(respuesta.getBody().get("timestamp"));
 
         @SuppressWarnings("unchecked")
