@@ -1,17 +1,22 @@
 package cl.perfulandia.usuarios;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import static org.mockito.Mockito.mockStatic;
+import org.springframework.boot.SpringApplication;
 
 class UsuariosApplicationTests {
 
     @Test
-    void contextLoads() {
-        // Given: no necesitamos levantar toda la app para esta prueba simple
+    void main_deberiaEjecutarSpringApplicationRun() {
+        String[] args = new String[] {};
 
-        // When: se ejecuta una comprobación básica
+        try (MockedStatic<SpringApplication> springApplicationMock = mockStatic(SpringApplication.class)) {
+            UsuariosApplication.main(args);
 
-        // Then: confirmamos que el proyecto de test responde
-        assertTrue(true);
+            springApplicationMock.verify(
+                    () -> SpringApplication.run(UsuariosApplication.class, args)
+            );
+        }
     }
 }
