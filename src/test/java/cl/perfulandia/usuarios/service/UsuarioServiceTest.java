@@ -17,12 +17,15 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.perfulandia.usuarios.dto.UsuarioAuthResponse;
 import cl.perfulandia.usuarios.dto.UsuarioResponse;
+import cl.perfulandia.usuarios.model.Permiso;
 import cl.perfulandia.usuarios.model.Rol;
 import cl.perfulandia.usuarios.model.Usuario;
 import cl.perfulandia.usuarios.repository.RolRepository;
@@ -543,6 +546,86 @@ class UsuarioServiceTest {
 
         assertTrue(resultado.isPresent());
         assertEquals("admin@perfulandia.cl", resultado.get().getCorreo());
+    }
+
+    @Test
+    void validarCredencialesParaAuth_deberiaRetornarDatosConRolYPermisos() {
+        Permiso permisoCrear = new Permiso(1L, "CREAR_USUARIO", "Crear usuarios");
+        Permiso permisoVer = new Permiso(2L, "VER_USUARIOS", "Ver usuarios");
+
+        HashSet<Permiso> permisos = new HashSet<>();
+        permisos.add(permisoVer);
+        permisos.add(permisoCrear);
+
+        Rol rol = new Rol(1L, "ADMINISTRADOR", "Rol administrador", permisos);
+        Usuario usuario = usuarioEjemplo(1L, "admin@perfulandia.cl", true, rol);
+
+        when(usuarioRepository.findByCorreo("admin@perfulandia.cl")).thenReturn(Optional.of(usuario));
+        when(passwordUtil.verificarPassword("admin123", "HASH_GUARDADO")).thenReturn(true);
+
+        Optional<UsuarioAuthResponse> resultado =
+                usuarioService.validarCredencialesParaAuth(" ADMIN@PERFULANDIA.CL ", "admin123");
+
+        assertTrue(resultado.isPresent());
+        assertEquals(1L, resultado.get().getIdUsuario());
+        assertEquals("admin@perfulandia.cl", resultado.get().getCorreo());
+        assertEquals("ADMINISTRADOR", resultado.get().getRol());
+        assertEquals(List.of("CREAR_USUARIO", "VER_USUARIOS"), resultado.get().getPermisos());
+
+        verify(usuarioRepository).findByCorreo("admin@perfulandia.cl");
+        verify(passwordUtil).verificarPassword("admin123", "HASH_GUARDADO");
+    }
+
+    @Test
+    void validarCredencialesParaAuth_deberiaRetornarSinRolYSinPermisosCuandoUsuarioNoTieneRol() {
+        Usuario usuario = usuarioEjemplo(2L, "cliente@perfulandia.cl", true, null);
+
+        when(usuarioRepository.findByCorreo("cliente@perfulandia.cl")).thenReturn(Optional.of(usuario));
+        when(passwordUtil.verificarPassword("cliente123", "HASH_GUARDADO")).thenReturn(true);
+
+        Optional<UsuarioAuthResponse> resultado =
+                usuarioService.validarCredencialesParaAuth("cliente@perfulandia.cl", "cliente123");
+
+        assertTrue(resultado.isPresent());
+        assertEquals(2L, resultado.get().getIdUsuario());
+        assertEquals("cliente@perfulandia.cl", resultado.get().getCorreo());
+        assertEquals("SIN_ROL", resultado.get().getRol());
+        assertEquals(List.of(), resultado.get().getPermisos());
+
+        verify(usuarioRepository).findByCorreo("cliente@perfulandia.cl");
+        verify(passwordUtil).verificarPassword("cliente123", "HASH_GUARDADO");
+    }
+
+    @Test
+    void validarCredencialesParaAuth_deberiaRetornarPermisosVaciosCuandoRolNoTienePermisos() {
+        Rol rol = mock(Rol.class);
+        when(rol.getNombreRol()).thenReturn("CLIENTE");
+        when(rol.getPermisos()).thenReturn(null);
+
+        Usuario usuario = usuarioEjemplo(3L, "cliente2@perfulandia.cl", true, rol);
+
+        when(usuarioRepository.findByCorreo("cliente2@perfulandia.cl")).thenReturn(Optional.of(usuario));
+        when(passwordUtil.verificarPassword("cliente123", "HASH_GUARDADO")).thenReturn(true);
+
+        Optional<UsuarioAuthResponse> resultado =
+                usuarioService.validarCredencialesParaAuth("cliente2@perfulandia.cl", "cliente123");
+
+        assertTrue(resultado.isPresent());
+        assertEquals(3L, resultado.get().getIdUsuario());
+        assertEquals("cliente2@perfulandia.cl", resultado.get().getCorreo());
+        assertEquals("CLIENTE", resultado.get().getRol());
+        assertEquals(List.of(), resultado.get().getPermisos());
+    }
+
+    @Test
+    void validarCredencialesParaAuth_deberiaRetornarVacioCuandoCredencialesNoSonValidas() {
+        when(usuarioRepository.findByCorreo("admin@perfulandia.cl")).thenReturn(Optional.empty());
+
+        Optional<UsuarioAuthResponse> resultado =
+                usuarioService.validarCredencialesParaAuth("admin@perfulandia.cl", "mala");
+
+        assertTrue(resultado.isEmpty());
+        verify(usuarioRepository).findByCorreo("admin@perfulandia.cl");
     }
 
     @Test

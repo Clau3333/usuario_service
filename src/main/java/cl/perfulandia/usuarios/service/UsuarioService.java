@@ -1,10 +1,12 @@
 package cl.perfulandia.usuarios.service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import cl.perfulandia.usuarios.dto.UsuarioAuthResponse;
 import cl.perfulandia.usuarios.dto.UsuarioResponse;
 import cl.perfulandia.usuarios.model.Rol;
 import cl.perfulandia.usuarios.model.Usuario;
@@ -147,6 +149,30 @@ public class UsuarioService {
         return usuarioRepository.findByCorreo(correoLimpio)
                 .filter(usuario -> passwordUtil.verificarPassword(password, usuario.getPasswordHash()))
                 .filter(usuario -> Boolean.TRUE.equals(usuario.getEstado()));
+    }
+
+    public Optional<UsuarioAuthResponse> validarCredencialesParaAuth(String correo, String password) {
+        return validarLogin(correo, password)
+                .map(usuario -> {
+                    String nombreRol = usuario.getRol() != null
+                            ? usuario.getRol().getNombreRol()
+                            : "SIN_ROL";
+
+                    List<String> permisos = usuario.getRol() != null && usuario.getRol().getPermisos() != null
+                            ? usuario.getRol().getPermisos()
+                                    .stream()
+                                    .sorted(Comparator.comparing(permiso -> permiso.getNombrePermiso()))
+                                    .map(permiso -> permiso.getNombrePermiso())
+                                    .toList()
+                            : List.of();
+
+                    return new UsuarioAuthResponse(
+                            usuario.getIdUsuario(),
+                            usuario.getCorreo(),
+                            nombreRol,
+                            permisos
+                    );
+                });
     }
 
     public UsuarioResponse convertirAUsuarioResponse(Usuario usuario) {
